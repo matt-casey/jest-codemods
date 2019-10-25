@@ -498,3 +498,22 @@ test('foo', () => {
 });
 `
 )
+
+testChanged(
+  'supports nested tests',
+  `
+import test from 'tape';
+test('mytest', t => {
+  t.test('nested test', tt => {
+      tt.ok('msg');
+  })
+});
+`,
+  `
+describe('mytest', () => {
+  test('nested test', () => {
+      expect('msg').toBeTruthy();
+  })
+});
+`
+)

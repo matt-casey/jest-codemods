@@ -191,3 +191,38 @@ export function detectUnsupportedNaming(fileInfo, j, ast, testFunctionName) {
       }
     })
 }
+
+/**
+ * Rewrite top-level tape calls to "describe" when enclosing subtests
+ */
+export function handleNestedTests(j, ast, testFunctionName) {
+  const topLevelTests = ast
+    .find(j.CallExpression, {
+      callee: { name: testFunctionName },
+    });
+
+  topLevelTests
+    .forEach(topLevelTest => {
+      const nestedTests = j(topLevelTest)
+        .find(j.CallExpression, {
+          callee: {
+            object: { name: 't' },
+            property: { name: 'test' },
+          },
+        })
+
+        if (nestedTests.size() === 0) { return; }
+
+        nestedTests
+          .forEach(nestedTest => nestedTest.node.callee = j.identifier(testFunctionName))
+          .find(j.CallExpression, {
+            callee: {
+              object: { name: 'tt' },
+            },
+          })
+          .forEach(p => p.node.callee.object.name = 't')
+
+        topLevelTest.node.callee = j.identifier('describe')
+        renameTestFunctionArgument(j, topLevelTest, '');
+    })
+}

@@ -7,6 +7,7 @@ import { removeRequireAndImport } from '../utils/imports'
 import logger from '../utils/logger'
 import {
   detectUnsupportedNaming,
+  handleNestedTests,
   rewriteAssertionsAndTestArgument,
   rewriteDestructuredTArgument,
 } from '../utils/tape-ava-helpers'
@@ -99,6 +100,7 @@ export default function tapeToJest(fileInfo, api, options) {
   const transforms = [
     () => rewriteDestructuredTArgument(fileInfo, j, ast, testFunctionName),
     () => detectUnsupportedNaming(fileInfo, j, ast, testFunctionName),
+    () => handleNestedTests(j, ast, testFunctionName),
     function detectUnsupportedFeatures() {
       ast
         .find(j.CallExpression, {
