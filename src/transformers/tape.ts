@@ -10,6 +10,8 @@ import {
   handleNestedTests,
   rewriteAssertionsAndTestArgument,
   rewriteDestructuredTArgument,
+  handleNestedSuites,
+  handleTestCase
 } from '../utils/tape-ava-helpers'
 
 const SPECIAL_THROWS_CASE = '(special throws case)'
@@ -84,7 +86,7 @@ export default function tapeToJest(fileInfo, api, options) {
   const j = api.jscodeshift
   const ast = j(fileInfo.source)
 
-  let testFunctionName = removeRequireAndImport(j, ast, 'tape')
+  let testFunctionName = removeRequireAndImport(j, ast, 'blue-tape')
 
   if (!testFunctionName) {
     // No Tape require/import were found
@@ -92,7 +94,7 @@ export default function tapeToJest(fileInfo, api, options) {
       return fileInfo.source
     }
 
-    testFunctionName = 'tape'
+    testFunctionName = 'blue-tape'
   }
 
   const logWarning = (msg, node) => logger(fileInfo, msg, node)
@@ -101,6 +103,8 @@ export default function tapeToJest(fileInfo, api, options) {
     () => rewriteDestructuredTArgument(fileInfo, j, ast, testFunctionName),
     () => detectUnsupportedNaming(fileInfo, j, ast, testFunctionName),
     () => handleNestedTests(j, ast, testFunctionName),
+    () => handleNestedSuites(j, ast, testFunctionName),
+    () => handleTestCase(j, ast, testFunctionName),
     function detectUnsupportedFeatures() {
       ast
         .find(j.CallExpression, {
@@ -137,7 +141,7 @@ export default function tapeToJest(fileInfo, api, options) {
       ast
         .find(j.CallExpression, {
           callee: {
-            object: { name: 't' },
+            object: { name: 'test' },
             property: ({ name }) =>
               !tPropertiesUnsupported.has(name) && !tPropertiesNotMapped.has(name),
           },

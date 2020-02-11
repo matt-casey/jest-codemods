@@ -31,7 +31,7 @@ function rewriteFailingAssertion(j, path) {
     j(path)
       .find(j.CallExpression, {
         callee: {
-          object: { name: 't' },
+          object: { name: 'test' },
           property: { name: 'fail' },
         },
       })
@@ -100,7 +100,7 @@ function removePassingAssertion(j, path) {
   j(path)
     .find(j.CallExpression, {
       callee: {
-        object: { name: 't' },
+        object: { name: 'test' },
         property: { name: 'pass' },
       },
     })
@@ -206,7 +206,7 @@ export function handleNestedTests(j, ast, testFunctionName) {
       const nestedTests = j(topLevelTest)
         .find(j.CallExpression, {
           callee: {
-            object: { name: 't' },
+            object: { name: 'test' },
             property: { name: 'test' },
           },
         })
@@ -221,6 +221,77 @@ export function handleNestedTests(j, ast, testFunctionName) {
             },
           })
           .forEach(p => p.node.callee.object.name = 't')
+
+        topLevelTest.node.callee = j.identifier('describe')
+        renameTestFunctionArgument(j, topLevelTest, '');
+    })
+}
+
+/**
+ * Rewrite top-level tape calls to "describe" when enclosing subtests
+ */
+export function handleNestedSuites(j, ast, testFunctionName) {
+  const topLevelTests = ast
+    .find(j.CallExpression, {
+      callee: { name: testFunctionName },
+    });
+
+  topLevelTests
+    .forEach(topLevelTest => {
+      const nestedTests = j(topLevelTest)
+        .find(j.CallExpression, {
+          callee: {
+            object: { name: 'suite' },
+            property: { name: 'test' },
+          },
+        })
+
+        if (nestedTests.size() === 0) { return; }
+
+        nestedTests
+          .forEach(nestedTest => nestedTest.node.callee = j.identifier(testFunctionName))
+          .find(j.CallExpression, {
+            callee: {
+              object: { name: 'tt' },
+            },
+          })
+          .forEach(p => p.node.callee.object.name = 't')
+
+        topLevelTest.node.callee = j.identifier('describe')
+        renameTestFunctionArgument(j, topLevelTest, '');
+    })
+}
+
+
+/**
+ * Rewrite top-level tape calls to "describe" when enclosing subtests
+ */
+export function handleTestCase(j, ast, testFunctionName) {
+  const topLevelTests = ast
+    .find(j.CallExpression, {
+      callee: { name: 'test' },
+    });
+
+  topLevelTests
+    .forEach(topLevelTest => {
+      const nestedTests = j(topLevelTest)
+        .find(j.CallExpression, {
+          callee: {
+            object: { name: 'testCase' },
+            property: { name: 'test' },
+          },
+        })
+
+        if (nestedTests.size() === 0) { return; }
+
+        nestedTests
+          .forEach(nestedTest => nestedTest.node.callee = j.identifier(testFunctionName))
+          .find(j.CallExpression, {
+            callee: {
+              object: { name: 'tt' },
+            },
+          })
+          .forEach(p => p.node.callee.object.name = 'test')
 
         topLevelTest.node.callee = j.identifier('describe')
         renameTestFunctionArgument(j, topLevelTest, '');
